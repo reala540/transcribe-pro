@@ -1,0 +1,11 @@
+import { z } from "zod";
+export const AuthFormSchema = z.object({ email: z.string().email().max(320), password: z.string().min(8).max(128) });
+export const CreateProjectSchema = z.object({ title: z.string().trim().min(1).max(200).optional(), language: z.string().trim().min(2).max(20).optional().nullable() });
+export const PresignUploadSchema = z.object({ projectId: z.string().min(1), filename: z.string().trim().min(1).max(255), contentType: z.string().trim().min(1), sizeBytes: z.number().int().nonnegative() });
+export const CompleteUploadSchema = z.object({ projectId: z.string().min(1) });
+export const UpdateProjectTitleSchema = z.object({ title: z.string().trim().min(1).max(200) });
+export const UpdateSegmentsSchema = z.object({ segments: z.array(z.object({ id: z.string().min(1), speaker: z.string().trim().max(100).nullable().optional(), text: z.string().max(20000).optional() })).min(1).max(500) });
+export const ExportProjectSchema = z.object({ format: z.enum(["TXT", "DOCX", "SRT"]) });
+export const ShareLinkSchema = z.object({ expiresAt: z.string().datetime().optional().nullable() });
+export const ApiKeyCreateSchema = z.object({ label: z.string().trim().min(1).max(100).optional() });
+export const ApiProjectCreateSchema = z.object({ title: z.string().trim().min(1).max(200).optional(), language: z.string().trim().min(2).max(20).optional().nullable() });

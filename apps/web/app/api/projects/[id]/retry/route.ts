@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@transcribe/db";
+import { getCurrentUserRecord } from "@/lib/auth/get-current-user";
+import { AppError, logError, toErrorResponse } from "@/lib/errors";
+import { getTranscriptionQueue } from "@/lib/queue";
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) { try { const user = await getCurrentUserRecord(); const { id } = await params; const project = await prisma.project.findFirst({ where: { id, userId: user.id } }); if (!project) throw new AppError("Project not found", 404); if (!project.storageKey && !project.sourceUrl) throw new AppError("Project has no uploaded media to retry.", 409); const job = await prisma.transcriptionJob.create({ data: { projectId: project.id, provider: process.env.TRANSCRIPTION_PROVIDER ?? "deepgram", status: "PENDING" } }); await prisma.project.update({ where: { id: project.id }, data: { status: "QUEUED", provider: process.env.TRANSCRIPTION_PROVIDER ?? "deepgram" } }); await getTranscriptionQueue().add("transcribe", { projectId: project.id, jobId: job.id }, { attempts: 3, backoff: { type: "exponential", delay: 5000 }, removeOnComplete: 100, removeOnFail: 100 }); return NextResponse.json({ ok: true, jobId: job.id }); } catch (error) { logError("api/projects/[id]/retry.POST", error); return toErrorResponse(error); } }

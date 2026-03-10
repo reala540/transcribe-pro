@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@transcribe/db";
+import { getCurrentUserRecord } from "@/lib/auth/get-current-user";
+import { AppError, logError, toErrorResponse } from "@/lib/errors";
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string; linkId: string }> }) { try { const user = await getCurrentUserRecord(); const { id, linkId } = await params; const project = await prisma.project.findFirst({ where: { id, userId: user.id } }); if (!project) throw new AppError("Project not found", 404); const link = await prisma.sharedProjectLink.findFirst({ where: { id: linkId, projectId: id, revokedAt: null } }); if (!link) throw new AppError("Share link not found", 404); await prisma.sharedProjectLink.update({ where: { id: linkId }, data: { revokedAt: new Date() } }); return NextResponse.json({ ok: true }); } catch (error) { logError("api/projects/[id]/share-links/[linkId]/revoke.POST", error); return toErrorResponse(error); } }
